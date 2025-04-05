@@ -38,6 +38,7 @@ import board
 import neopixel
 from kmk.keys import KC
 from kmk.kmk_keyboard import KMKKeyboard
+from kmk.extensions.media_keys import MediaKeys
 from kmk.matrix import DiodeOrientation
 from kmk.hid import HIDModes
 from kmk.modules.layers import Layers
@@ -51,10 +52,77 @@ import digitalio
 import time
 from kmk.extensions.rgb import RGB
 from kmk.extensions import Extension
+
+import board
 pixel_pin = board.GP15
-num_pixels = 80  # 使用するNeoPixelの数
-pixels = neopixel.NeoPixel(pixel_pin, num_pixels, auto_write=True)
-i = 0
+#num_pixels = 80  # 使用するNeoPixelの数
+#pixels = neopixel.NeoPixel(pixel_pin, num_pixels, auto_write=True)
+#i = 0
+
+#import board
+num_pixels = 10
+#pixels = neopixel.NeoPixel(board.GP15, num_pixels, brightness=0.1)
+
+# シンプルなアニメーション関数（例としてカラーシフト）
+def color_shift():
+    for i in range(num_pixels):
+        pixels[i] = (i * 25 % 255, 0, 255 - i * 25 % 255)
+    pixels.show()
+
+# KMKのループ内でアニメーションを追加
+def custom_animation():
+    while True:
+        color_shift()
+        time.sleep(0.1)  # アニメーションの速度調整
+class CustomRGB(Extension):
+    def __init__(self, pin=board.GP28, num_leds=10, led_delay=5,row_nums=[2,2]):
+        self.led = neopixel.NeoPixel(pin, num_leds)
+        for i in range(num_leds):
+            self.led[i] = (0,10,10)
+
+        self.num_leds = num_leds
+        self.led_delay = led_delay
+        self.row_nums = row_nums
+        self.num_leds1 = 0
+        for i in self.row_nums:
+            self.num_leds1 += i
+        self.led_timer1 = [None] * self.num_leds1
+        self.led_timer2 = [None] * self.num_leds1
+        self.led_timer3 = [None] * self.num_leds1F
+        self.led_timer4 = [None] * self.num_leds1
+        self.led_timer5 = [None] * self.num_leds1
+        self.led_timerdel1 = [None] * self.num_leds1
+        self.led_timerdel2 = [None] * self.num_leds1
+        self.led_timerdel3 = [None] * self.num_leds1
+        self.led_timerdel4 = [None] * self.num_leds1
+        self.led_timerdel5 = [None] * self.num_leds1
+        self.led_index = 0
+
+    def set_led(self, index, color):
+        self.led[index] = color
+        self.led.show()
+
+    def start_timer(self,keyindex):
+        print("start_timer")
+        self.led_timer1[keyindex] = time.monotonic() + self.led_delay
+        self.led_timerdel1[keyindex] = time.monotonic() + self.led_delay + 1
+        print(time.monotonic())
+        print(self.led_timer1)
+
+    def after_matrix_scan(self, keyboard):
+        # タイマーが設定されていて、現在の時間がタイマーを超えた場合
+        #print("Process method called")
+
+
+        for nums in range(self.num_leds1):
+            if self.led_timer1[nums] and time.monotonic() >= self.led_timer1[nums]:
+                print("turn_on")
+                self.set_led(nums, (20, 0, 0))  # LEDを赤色に点灯
+                self.led_timer1[nums] = None  # タイマーをリセット
+            if self.led_timerdel1[nums] and time.monotonic() >= self.led_timerdel1[nums]:
+                print("turn_off")
+                self.set_led(nums, (0, 20, 20))  # LEDを赤色に点灯
+                self.led_timerdel1[nums] = None  # タイマーをリセット
 
 
 """ for k in range(num_pixels):
@@ -135,26 +203,31 @@ keyboard = Mykeyboard()
 keyboard.row_pins = (board.GP22,board.GP16,board.GP17,board.GP18,board.GP19,board.GP26,board.GP27)
 keyboard.col_pins = (board.GP14,board.GP13,board.GP12,board.GP11,board.GP10,board.GP9,board.GP8,board.GP7,board.GP6,board.GP5,board.GP4,board.GP3,board.GP2,board.GP1,board.GP0)
 
-
+keyboard.extensions.append(MediaKeys())
 
 keyboard.diode_orientation = DiodeOrientation.ROWS
 keyboard.debug_enabled = 0
+#rgb = RGB(pixel_pin,80)
+#keyboard.extensions.append(rgb)
+rgb = RGB(board.GP15,80)
+keyboard.extensions.append(rgb)
+
 
 keyboard.keymap=[
-    [KC.A, KC.A, KC.A, KC.A, KC.A, KC.A, KC.W, KC.A, KC.A, KC.A, KC.A, KC.A, KC.A, KC.A, KC.W,
-    KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.B, KC.Q,
-    KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.C, KC.P, KC.P,
-    KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.D, KC.O, KC.O,
-    KC.E, KC.E, KC.E, KC.E, KC.E, KC.E, KC.E, KC.E, KC.E, KC.E, KC.E, KC.E, KC.L, KC.E, KC.L,
-    KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.F, KC.M, KC.M,
-    KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.S, KC.G, KC.G, KC.G, KC.G, KC.S,
-    KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.G, KC.S, KC.G, KC.G, KC.G, KC.G, KC.S]
+    [KC.MUTE, KC.VOLD, KC.VOLU, KC.RGB_MODE_RAINBOW, KC.RGB_MODE_BREATHE_RAINBOW, KC.RGB_MODE_BREATHE, KC.RGB_MODE_KNIGHT, KC.NO, KC.NO, KC.NO, KC.NO, KC.NO, KC.NO, KC.NO, KC.NO,
+    KC.ESC, KC.F1, KC.F2, KC.F3, KC.F4, KC.F5, KC.F6, KC.F7, KC.F8, KC.F9, KC.F10, KC.F11, KC.F12, KC.KP_ASTERISK, KC.DEL,
+    KC.ZKHK, KC.N1, KC.N2, KC.N3, KC.N4, KC.N5, KC.N6, KC.N7, KC.N8, KC.N9, KC.N0, KC.MINS, KC.EQL, KC.BSPC, KC.NO,
+    KC.TAB, KC.Q, KC.W, KC.E, KC.R, KC.T, KC.Y, KC.U, KC.I, KC.O, KC.P, KC.LBRC, KC.RBRC, KC.BSLS, KC.NO,
+    KC.CAPSLOCK, KC.A, KC.S, KC.D, KC.F, KC.G, KC.H, KC.J, KC.K, KC.L, KC.SCLN, KC.QUOT, KC.ENTER, KC.NO, KC.NO,
+    KC.LSFT, KC.Z, KC.X, KC.C, KC.V, KC.B, KC.N, KC.M, KC.COMM, KC.DOT, KC.SLASH, KC.RCTL, KC.UP, KC.RALT, KC.NO,
+    KC.LCTL, KC.LALT, KC.LWIN, KC.F12, KC.SPC, KC.LGUI(KC.V), KC.LEFT, KC.DOWN, KC.RIGHT, KC.NO, KC.NO, KC.NO, KC.NO, KC.NO, KC.NO]
 ]
 
-for k in range(num_pixels):
-    pixels[k] = (20,20,20)
+#for k in range(num_pixels):
+#    pixels[k] = (10,15,10)
 
 if __name__ == '__main__':
+    #keyboard.go()
     keyboard.go()
 
 
